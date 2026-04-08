@@ -1,87 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Solar Config</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body>
-    <div id="root"></div>
+<head>
+  <meta charset="UTF-8" />
+  <title>Solar Config</title>
 
-    <script type="module">
-      import React, { useState, useMemo } from "https://esm.sh/react";
-      import { createRoot } from "https://esm.sh/react-dom/client";
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-      const BATTERY_DB = [
-        { id: "W1", name: "5.22kWh (51.2V/102Ah)", cap: 5.22, volt: 51.2 },
-        { id: "W2", name: "5.22kWh (25.6V/204Ah)", cap: 5.22, volt: 25.6 }
-      ];
+  <!-- React -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+</head>
 
-      const INVERTER_DB = [
-        { model: "MR-SPH6.6K", p_kw: 6.6, volt: 51.2 },
-        { model: "MR-SPH10.6K", p_kw: 10.6, volt: 51.2 }
-      ];
+<body class="bg-slate-50">
+<div id="root"></div>
 
-      function App() {
-        const [currentI, setCurrentI] = useState("");
-        const [backTime, setBackTime] = useState("");
+<script>
+const { useState, useMemo } = React;
 
-        const result = useMemo(() => {
-          const I = parseFloat(currentI);
-          const t = parseFloat(backTime);
-          if (isNaN(I) || isNaN(t) || I <= 0 || t <= 0) return null;
+const BATTERY_DB = [
+  { id: "W1", name: "5.22kWh (51.2V/102Ah)", cap: 5.22, volt: 51.2 },
+  { id: "W2", name: "5.22kWh (25.6V/204Ah)", cap: 5.22, volt: 25.6 },
+];
 
-          const load = 220 * I;
-          const inverter = INVERTER_DB[0];
+const INVERTER_DB = [
+  { model: "MR-SPH6.6K", p_kw: 6.6, volt: 51.2 },
+  { model: "MR-SPH10.6K", p_kw: 10.6, volt: 51.2 }
+];
 
-          return {
-            inverter,
-            battery: BATTERY_DB[0],
-            qty: Math.ceil((load * t) / 1000)
-          };
-        }, [currentI, backTime]);
+function App() {
+  const [currentI, setCurrentI] = useState("");
+  const [backTime, setBackTime] = useState("");
 
-        return React.createElement(
-          "div",
-          { className: "p-10" },
-          React.createElement("h1", { className: "text-xl mb-4" }, "Solar Config"),
-          React.createElement("input", {
-            placeholder: "Current (A)",
-            value: currentI,
-            onChange: (e) => setCurrentI(e.target.value),
-            className: "border p-2 mb-2 block"
-          }),
-          React.createElement("input", {
-            placeholder: "Time (h)",
-            value: backTime,
-            onChange: (e) => setBackTime(e.target.value),
-            className: "border p-2 mb-4 block"
-          }),
-          result &&
-            React.createElement(
-              "div",
-              {},
-              React.createElement("p", {}, "Inverter: " + result.inverter.model),
-              React.createElement("p", {}, "Battery Qty: " + result.qty),
-              React.createElement(
-                "button",
-                {
-                  className: "bg-black text-white px-4 py-2 mt-2",
-                  onClick: () => {
-                    const text = `Inverter: ${result.inverter.model}, Qty: ${result.qty}`;
-                    navigator.clipboard.writeText(text);
-                    alert("Copied!");
-                  }
-                },
-                "Copy Result"
-              )
-            )
-        );
-      }
+  const result = useMemo(() => {
+    const I = parseFloat(currentI);
+    const t = parseFloat(backTime);
+    if (isNaN(I) || isNaN(t) || I <= 0 || t <= 0) return null;
 
-      createRoot(document.getElementById("root")).render(
-        React.createElement(App)
-      );
-    </script>
-  </body>
+    const load = 220 * I;
+
+    return {
+      inverter: INVERTER_DB[0],
+      battery: BATTERY_DB[0],
+      qty: Math.ceil((load * t) / 1000)
+    };
+  }, [currentI, backTime]);
+
+  return React.createElement("div", { className: "p-10 max-w-xl mx-auto" },
+    React.createElement("h1", { className: "text-3xl font-bold text-[#00aeaa] mb-6" }, "SOLAR CONFIG"),
+
+    React.createElement("input", {
+      placeholder: "Load Current (A)",
+      value: currentI,
+      onChange: e => setCurrentI(e.target.value),
+      className: "w-full p-3 border mb-4 rounded"
+    }),
+
+    React.createElement("input", {
+      placeholder: "Backup Time (h)",
+      value: backTime,
+      onChange: e => setBackTime(e.target.value),
+      className: "w-full p-3 border mb-4 rounded"
+    }),
+
+    result && React.createElement("div", { className: "bg-white p-6 rounded shadow" },
+      React.createElement("p", { className: "font-bold" }, "Inverter: " + result.inverter.model),
+      React.createElement("p", {}, "Battery Qty: " + result.qty),
+
+      React.createElement("button", {
+        className: "mt-4 bg-black text-white px-4 py-2 rounded",
+        onClick: () => {
+          const text = `Inverter: ${result.inverter.model}, Qty: ${result.qty}`;
+          navigator.clipboard.writeText(text);
+          alert("Copied!");
+        }
+      }, "Copy Result")
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  React.createElement(App)
+);
+</script>
+</body>
 </html>

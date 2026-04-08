@@ -18,64 +18,132 @@
 <script>
 const { useState, useMemo } = React;
 
+// ===== 数据 =====
 const BATTERY_DB = [
   { id: "W1", name: "5.22kWh (51.2V/102Ah)", cap: 5.22, volt: 51.2 },
   { id: "W2", name: "5.22kWh (25.6V/204Ah)", cap: 5.22, volt: 25.6 },
+  { id: "W3", name: "8.03kWh (25.6V/314Ah)", cap: 8.03, volt: 25.6 },
+  { id: "W4", name: "10.44kWh (51.2V/204Ah)", cap: 10.44, volt: 51.2 },
+  { id: "W5", name: "14.33kWh (51.2V/280Ah)", cap: 14.33, volt: 51.2 },
+  { id: "W6", name: "16.07kWh (51.2V/314Ah)", cap: 16.07, volt: 51.2 }
 ];
 
-const INVERTER_DB = [
-  { model: "MR-SPH6.6K", p_kw: 6.6, volt: 51.2 },
-  { model: "MR-SPH10.6K", p_kw: 10.6, volt: 51.2 }
-];
+const INVERTER_DB = {
+  IP20: [
+    { model: "MR-SPH4200 TWIN", p_kw: 4.2, volt: 25.6 },
+    { model: "MR-SPH6200 TWIN", p_kw: 6.2, volt: 51.2 },
+    { model: "MR-SPF6.5K-LP1-TL20E", p_kw: 6.5, volt: 51.2 },
+    { model: "MR-SPF8000M TWIN", p_kw: 8.0, volt: 51.2 },
+    { model: "MR-SPF11000M TWIN", p_kw: 11.0, volt: 51.2 }
+  ],
+  IP66: [
+    { model: "MR-SPH6.6K-LP1-TL65E", p_kw: 6.6, volt: 51.2 },
+    { model: "MR-SPH8.6K-LP1-TL65E", p_kw: 8.6, volt: 51.2 },
+    { model: "MR-SPH10.6K-LP1-TL65E", p_kw: 10.6, volt: 51.2 }
+  ]
+};
 
+// ===== 主组件 =====
 function App() {
   const [currentI, setCurrentI] = useState("");
   const [backTime, setBackTime] = useState("");
+  const [selectedWb, setSelectedWb] = useState("W1");
+  const [selectedIP, setSelectedIP] = useState("IP20");
 
   const result = useMemo(() => {
     const I = parseFloat(currentI);
     const t = parseFloat(backTime);
     if (isNaN(I) || isNaN(t) || I <= 0 || t <= 0) return null;
 
-    const load = 220 * I;
+    const loadP = 220 * I;
+    const neededPi_kW = loadP / 0.8 / 1000;
+    const neededW_kWh = (loadP * t) / 1000;
+    const battery = BATTERY_DB.find(b => b.id === selectedWb);
 
-    return {
-      inverter: INVERTER_DB[0],
-      battery: BATTERY_DB[0],
-      qty: Math.ceil((load * t) / 1000)
-    };
-  }, [currentI, backTime]);
+    const inverter = INVERTER_DB[selectedIP]
+      .filter(inv => inv.p_kw >= neededPi_kW && inv.volt === battery.volt)
+      .sort((a,b) => a.p_kw - b.p_kw)[0];
 
-  return React.createElement("div", { className: "p-10 max-w-xl mx-auto" },
-    React.createElement("h1", { className: "text-3xl font-bold text-[#00aeaa] mb-6" }, "SOLAR CONFIG"),
+    const Qb = Math.ceil(neededW_kWh / (battery.cap * 0.85));
+    const Qp = Math.ceil(loadP / (0.8 * 625));
 
-    React.createElement("input", {
-      placeholder: "Load Current (A)",
-      value: currentI,
-      onChange: e => setCurrentI(e.target.value),
-      className: "w-full p-3 border mb-4 rounded"
-    }),
+    return { inverter, battery, Qb, Qp };
+  }, [currentI, backTime, selectedWb, selectedIP]);
 
-    React.createElement("input", {
-      placeholder: "Backup Time (h)",
-      value: backTime,
-      onChange: e => setBackTime(e.target.value),
-      className: "w-full p-3 border mb-4 rounded"
-    }),
+  return React.createElement("div", { className: "p-6 md:p-10 max-w-4xl mx-auto" },
 
-    result && React.createElement("div", { className: "bg-white p-6 rounded shadow" },
-      React.createElement("p", { className: "font-bold" }, "Inverter: " + result.inverter.model),
-      React.createElement("p", {}, "Battery Qty: " + result.qty),
+    React.createElement("h1", { className: "text-3xl font-black text-[#00aeaa] mb-6" }, "SOLAR CONFIG"),
 
-      React.createElement("button", {
-        className: "mt-4 bg-black text-white px-4 py-2 rounded",
-        onClick: () => {
-          const text = `Inverter: ${result.inverter.model}, Qty: ${result.qty}`;
-          navigator.clipboard.writeText(text);
-          alert("Copied!");
-        }
-      }, "Copy Result")
-    )
+    // 输入区
+    React.createElement("div", { className: "bg-white p-6 rounded-2xl shadow mb-6 space-y-4" },
+
+      React.createElement("input", {
+        placeholder: "Load Current (A)",
+        value: currentI,
+        onChange: e => setCurrentI(e.target.value),
+        className: "w-full border-b p-2 text-lg"
+      }),
+
+      React.createElement("input", {
+        placeholder: "Backup Time (h)",
+        value: backTime,
+        onChange: e => setBackTime(e.target.value),
+        className: "w-full border-b p-2 text-lg"
+      }),
+
+      React.createElement("select", {
+        value: selectedWb,
+        onChange: e => setSelectedWb(e.target.value),
+        className: "w-full p-2 bg-slate-100 rounded"
+      },
+        BATTERY_DB.map(b =>
+          React.createElement("option", { value: b.id }, b.name)
+        )
+      ),
+
+      React.createElement("div", { className: "flex gap-2" },
+        ["IP20","IP66"].map(ip =>
+          React.createElement("button", {
+            onClick: () => setSelectedIP(ip),
+            className: selectedIP === ip
+              ? "px-4 py-2 bg-[#00aeaa] text-white rounded-full"
+              : "px-4 py-2 bg-gray-200 rounded-full"
+          }, ip)
+        )
+      )
+    ),
+
+    // 结果区
+    !result
+      ? React.createElement("div", { className: "border-dashed border p-10 text-center text-gray-400" }, "Waiting for input...")
+      : React.createElement("div", { className: "space-y-4" },
+
+        React.createElement("div", { className: "bg-white p-6 rounded shadow" },
+          React.createElement("p", {}, "Inverter: " + result.inverter.model)
+        ),
+
+        React.createElement("div", { className: "bg-[#00aeaa] text-white p-6 rounded text-3xl font-bold text-center" },
+          result.Qb
+        ),
+
+        React.createElement("div", { className: "bg-black text-white p-4 rounded text-center" },
+          result.Qp + " panels"
+        ),
+
+        React.createElement("button", {
+          className: "w-full bg-black text-white py-3 rounded",
+          onClick: () => {
+            const text = `
+Inverter: ${result.inverter.model}
+Battery: ${result.battery.name}
+Qty: ${result.Qb}
+Panels: ${result.Qp}
+`;
+            navigator.clipboard.writeText(text);
+            alert("Copied!");
+          }
+        }, "Copy Result")
+      )
   );
 }
 

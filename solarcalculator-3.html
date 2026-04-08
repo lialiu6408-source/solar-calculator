@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate">
+    <title>Solar System Configurator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .teal-theme { color: #00aeaa; }
+        .bg-teal-theme { background-color: #00aeaa; }
+        .border-teal-theme { border-color: #00aeaa; }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const BATTERY_DB = [
+            { id: "W1", name: "5.22kWh (51.2V/102Ah)", cap: 5.22, volt: 51.2 },
+            { id: "W2", name: "5.22kWh (25.6V/204Ah)", cap: 5.22, volt: 25.6 },
+            { id: "W3", name: "8.03kWh (25.6V/314Ah)", cap: 8.03, volt: 25.6 },
+            { id: "W4", name: "10.44kWh (51.2V/204Ah)", cap: 10.44, volt: 51.2 },
+            { id: "W5", name: "14.33kWh (51.2V/280Ah)", cap: 14.33, volt: 51.2 },
+            { id: "W6", name: "16.07kWh (51.2V/314Ah)", cap: 16.07, volt: 51.2 }
+        ];
+
+        const INVERTER_DB = {
+            IP20: [
+                { model: "MR-SPH4200 TWIN", p_kw: 4.2, volt: 25.6 },
+                { model: "MR-SPH6200 TWIN", p_kw: 6.2, volt: 51.2 },
+                { model: "MR-SPF6.5K-LP1-TL20E", p_kw: 6.5, volt: 51.2 },
+                { model: "MR-SPF8000M TWIN", p_kw: 8.0, volt: 51.2 },
+                { model: "MR-SPF11000M TWIN", p_kw: 11.0, volt: 51.2 }
+            ],
+            IP66: [
+                { model: "MR-SPH6.6K-LP1-TL65E", p_kw: 6.6, volt: 51.2 },
+                { model: "MR-SPH8.6K-LP1-TL65E", p_kw: 8.6, volt: 51.2 },
+                { model: "MR-SPH10.6K-LP1-TL65E", p_kw: 10.6, volt: 51.2 }
+            ]
+        };
+
+        function App() {
+            const [currentI, setCurrentI] = useState("");
+            const [backTime, setBackTime] = useState("");
+            const [selectedWb, setSelectedWb] = useState(BATTERY_DB[0].id);
+            const [selectedIP, setSelectedIP] = useState("IP20");
+
+            const results = useMemo(() => {
+                const I = parseFloat(currentI);
+                const t = parseFloat(backTime);
+                if (!I || !t || I <= 0 || t <= 0) return null;
+
+                const loadP = 220 * I;
+                const neededPi_kW = loadP / 0.8 / 1000;
+                const neededW_kWh = (loadP * t) / 1000;
+                const battery = BATTERY_DB.find(b => b.id === selectedWb);
+
+                const availableInverters = INVERTER_DB[selectedIP]
+                    .filter(inv => inv.p_kw >= neededPi_kW && inv.volt === battery.volt)
+                    .sort((a, b) => a.p_kw - b.p_kw);
+
+                const Qb = Math.ceil(neededW_kWh / (battery.cap * 0.85));
+                const Qp = Math.ceil(loadP / (0.8 * 625));
+
+                return {
+                    battery, Qb, Qp, loadP,
+                    bestInverter: availableInverters[0] || null,
+                    voltMismatch: !availableInverters[0],
+                    limitExceeded: Qb > 15
+                };
+            }, [currentI, backTime, selectedWb, selectedIP]);
+
+            return (
+                <div className="min-h-screen p-4 md:p-10 translate-no">
+                    <div className="max-w-4xl mx-auto">
+                        <header className="mb-10 border-l-4 pl-4 border-teal-theme">
+                            <h1 className="text-3xl font-black teal-theme tracking-tighter">SOLAR CONFIG</h1>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Overseas Sales Pro Tool</p>
+                        </header>
+
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-8">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Load Current I (A)</label>
+                                    <input type="number" value={currentI} onChange={e => setCurrentI(e.target.value)} className="w-full border-b border-slate-200 py-2 outline-none focus:border-teal-theme text-xl font-semibold bg-transparent" placeholder="Enter Amps" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Backup Time t (h)</label>
+                                    <input type="number" value={backTime} onChange={e => setBackTime(e.target.value)} className="w-full border-b border-slate-200 py-2 outline-none focus:border-teal-theme text-xl font-semibold bg-transparent" placeholder="Enter Hours" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Battery Model</label>
+                                    <select value={selectedWb} onChange={e => setSelectedWb(e.target.value)} className="w-full bg-slate-50 rounded-xl px-4 py-3 outline-none text-sm font-medium text-slate-700 cursor-pointer">
+                                        {BATTERY_DB.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-3">Protection Rating</label>
+                                    <div className="flex gap-2">
+                                        {["IP20", "IP66"].map(ip => (
+                                            <button key={ip} onClick={() => setSelectedIP(ip)} className={`px-8 py-2 rounded-lg text-xs font-bold transition-all ${selectedIP === ip ? "bg-teal-theme text-white shadow-lg" : "bg-slate-100 text-slate-400"}`}>{ip}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {!results ? (
+                                    <div className="h-64 border-2 border-dashed border-slate-200 rounded-3xl flex items-center justify-center text-slate-300 text-sm italic text-center px-10">Awaiting input parameters...</div>
+                                ) : results.voltMismatch ? (
+                                    <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
+                                        <p className="text-orange-600 font-bold text-sm">⚠️ Voltage Mismatch</p>
+                                        <p className="text-orange-500 text-xs mt-2 leading-relaxed">The selected {results.battery.volt}V battery is not compatible with the {selectedIP} series inverter. Please reselect.</p>
+                                    </div>
+                                ) : results.limitExceeded ? (
+                                    <div className="bg-red-50 p-6 rounded-3xl border border-red-100">
+                                        <p className="text-red-600 font-bold text-sm">❌ Parallel Limit Exceeded</p>
+                                        <p className="text-red-500 text-xs mt-2 leading-relaxed">Current setup requires <span className="font-bold underline">{results.Qb} units</span>, exceeding the maximum parallel limit (15 units). Please select a higher capacity battery.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Recommended Inverter</p>
+                                            <p className="text-2xl font-black text-slate-800">{results.bestInverter.model}</p>
+                                            <p className="inline-block mt-2 px-3 py-1 bg-teal-50 text-[#00aeaa] text-[10px] font-bold rounded-md uppercase">{results.bestInverter.p_kw}kW System / {results.bestInverter.volt}V</p>
+                                        </div>
+                                        <div className="bg-teal-theme p-8 rounded-3xl text-white shadow-xl flex justify-between items-center">
+                                            <div>
+                                                <p className="text-[10px] font-bold opacity-60 uppercase mb-1">Recommended Battery</p>
+                                                <p className="text-sm font-medium">{results.battery.name}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-6xl font-black leading-none">{results.Qb}</p>
+                                                <p className="text-[10px] opacity-60 font-bold uppercase mt-1">Units (Parallel)</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-900 p-8 rounded-3xl text-white flex justify-between items-center">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase">Recommended PV Panels</p>
+                                                <p className="text-[10px] text-slate-500 italic">Based on 625W modules</p>
+                                            </div>
+                                            <p className="text-4xl font-black teal-theme">{results.Qp}<span className="text-lg ml-1 text-slate-600 font-normal">pcs</span></p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

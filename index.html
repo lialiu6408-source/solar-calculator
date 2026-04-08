@@ -1,155 +1,245 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Solar Config</title>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.wrap{max-width:780px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:2rem}
+.brand-title{font-size:20px;font-weight:500;color:#00aeaa}
+.brand-sub{font-size:13px;color:var(--color-text-secondary)}
+.divider{height:2px;background:#00aeaa;opacity:.18;margin-bottom:2rem;border-radius:2px}
+.section-label{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#00aeaa;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;color:var(--color-text-secondary)}
+.field input,.field select{height:40px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:0 12px;font-size:14px;background:var(--color-background-primary);color:var(--color-text-primary);outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:#00aeaa;box-shadow:0 0 0 3px rgba(0,174,170,.12)}
+.field input::placeholder{color:var(--color-text-tertiary)}
+.toggle-row{display:flex;gap:0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);overflow:hidden;height:40px}
+.toggle-btn{flex:1;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--color-text-secondary);cursor:pointer;transition:background .15s,color .15s}
+.toggle-btn.active{background:#00aeaa;color:#fff}
+.toggle-btn:not(.active):hover{background:var(--color-background-secondary)}
+.calc-btn{width:100%;height:46px;border:none;border-radius:var(--border-radius-md);background:#00aeaa;color:#fff;font-size:15px;font-weight:500;cursor:pointer;transition:opacity .15s;margin-top:8px}
+.calc-btn:hover{opacity:.88}
+.calc-btn:active{opacity:.75;transform:scale(.99)}
+.results{margin-top:2rem;display:none}
+.results.show{display:block}
+.res-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:14px;margin-bottom:1.5rem}
+.res-card{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:1rem 1.125rem}
+.res-card .card-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#00aeaa;margin-bottom:6px}
+.res-card .card-val{font-size:22px;font-weight:500;color:var(--color-text-primary);line-height:1.2}
+.res-card .card-sub{font-size:12px;color:var(--color-text-secondary);margin-top:4px}
+.detail-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:14px}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.detail-row:last-child{border-bottom:none}
+.detail-row .dk{color:var(--color-text-secondary)}
+.detail-row .dv{font-weight:500;color:var(--color-text-primary)}
+.alert{border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;margin-bottom:14px}
+.alert-warn{background:rgba(186,117,23,.1);color:#854F0B;border-left:3px solid #BA7517}
+.alert-ok{background:rgba(0,174,170,.08);color:#0F6E56;border-left:3px solid #00aeaa}
+.solar-section{margin-top:1.5rem}
+.solar-toggle{display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer}
+.solar-toggle input[type=checkbox]{width:16px;height:16px;accent-color:#00aeaa;cursor:pointer}
+.solar-toggle span{font-size:13px;color:var(--color-text-secondary)}
+.footer-note{margin-top:2.5rem;font-size:12px;color:var(--color-text-tertiary);border-top:0.5px solid var(--color-border-tertiary);padding-top:14px}
+.err{color:#E24B4A;font-size:12px;margin-top:4px}
+.bat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.bat-opt{border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.bat-opt.selected{border-color:#00aeaa;background:rgba(0,174,170,.07)}
+.bat-opt .bat-name{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.bat-opt .bat-spec{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+</style>
 
-  <!-- React -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-</head>
+<div class="wrap">
+  <h2 class="sr-only">Solar Low-Voltage Single-Phase System Calculator — matches inverter, battery, and solar panel recommendations to your load</h2>
 
-<body class="bg-slate-50">
-<div id="root"></div>
+  <div class="brand">
+    <span class="brand-title">Solar LV Calculator</span>
+    <span class="brand-sub">Single-Phase / Low-Voltage</span>
+  </div>
+  <div class="divider"></div>
+
+  <div class="section-label">Load Parameters</div>
+  <div class="grid2">
+    <div class="field">
+      <label>Load current I (A)</label>
+      <input type="number" id="inp-I" min="0.1" step="0.1" placeholder="e.g. 20">
+      <span class="err" id="err-I"></span>
+    </div>
+    <div class="field">
+      <label>Backup duration t (hours)</label>
+      <input type="number" id="inp-t" min="0.1" step="0.1" placeholder="e.g. 4">
+      <span class="err" id="err-t"></span>
+    </div>
+  </div>
+
+  <div class="section-label">Protection Rating</div>
+  <div class="field" style="margin-bottom:20px">
+    <div class="toggle-row">
+      <button class="toggle-btn active" id="btn-ip20" onclick="setIP('IP20')">IP20 — Indoor</button>
+      <button class="toggle-btn" id="btn-ip66" onclick="setIP('IP66')">IP66 — Outdoor</button>
+    </div>
+  </div>
+
+  <div class="section-label">Select Battery Type</div>
+  <div class="bat-grid" id="bat-grid"></div>
+  <span class="err" id="err-bat"></span>
+
+  <label class="solar-toggle" style="margin-top:4px;margin-bottom:0">
+    <input type="checkbox" id="chk-solar"> <span>Include solar panel recommendation</span>
+  </label>
+
+  <button class="calc-btn" onclick="calculate()">Calculate system →</button>
+
+  <div class="results" id="results">
+    <div class="divider" style="margin-top:2rem"></div>
+    <div class="section-label" style="margin-top:1.5rem">System Summary</div>
+    <div class="res-grid" id="res-grid"></div>
+
+    <div class="section-label">Configuration Details</div>
+    <div class="detail-card" id="detail-card"></div>
+
+    <div id="solar-out"></div>
+    <div id="alerts-out"></div>
+  </div>
+
+  <div class="footer-note">
+    ⚠ Results are for reference only. Please consult a qualified engineer before installation.
+  </div>
+</div>
 
 <script>
-const { useState, useMemo } = React;
-
-// ===== 数据 =====
-const BATTERY_DB = [
-  { id: "W1", name: "5.22kWh (51.2V/102Ah)", cap: 5.22, volt: 51.2 },
-  { id: "W2", name: "5.22kWh (25.6V/204Ah)", cap: 5.22, volt: 25.6 },
-  { id: "W3", name: "8.03kWh (25.6V/314Ah)", cap: 8.03, volt: 25.6 },
-  { id: "W4", name: "10.44kWh (51.2V/204Ah)", cap: 10.44, volt: 51.2 },
-  { id: "W5", name: "14.33kWh (51.2V/280Ah)", cap: 14.33, volt: 51.2 },
-  { id: "W6", name: "16.07kWh (51.2V/314Ah)", cap: 16.07, volt: 51.2 }
-];
-
-const INVERTER_DB = {
-  IP20: [
-    { model: "MR-SPH4200 TWIN", p_kw: 4.2, volt: 25.6 },
-    { model: "MR-SPH6200 TWIN", p_kw: 6.2, volt: 51.2 },
-    { model: "MR-SPF6.5K-LP1-TL20E", p_kw: 6.5, volt: 51.2 },
-    { model: "MR-SPF8000M TWIN", p_kw: 8.0, volt: 51.2 },
-    { model: "MR-SPF11000M TWIN", p_kw: 11.0, volt: 51.2 }
+const INVERTERS = {
+  IP20:[
+    {model:"MR-SPH4200 TWIN",kW:4.2,batV:25.6},
+    {model:"MR-SPH6200 TWIN",kW:6.2,batV:51.2},
+    {model:"MR-SPF6.5K-LP1-TL20E",kW:6.5,batV:51.2},
+    {model:"MR-SPF8000M TWIN",kW:8.0,batV:51.2},
+    {model:"MR-SPF11000M TWIN",kW:11.0,batV:51.2}
   ],
-  IP66: [
-    { model: "MR-SPH6.6K-LP1-TL65E", p_kw: 6.6, volt: 51.2 },
-    { model: "MR-SPH8.6K-LP1-TL65E", p_kw: 8.6, volt: 51.2 },
-    { model: "MR-SPH10.6K-LP1-TL65E", p_kw: 10.6, volt: 51.2 }
+  IP66:[
+    {model:"MR-SPH6.6K-LP1-TL65E",kW:6.6,batV:51.2},
+    {model:"MR-SPH8.6K-LP1-TL65E",kW:8.6,batV:51.2},
+    {model:"MR-SPH10.6K-LP1-TL65E",kW:10.6,batV:51.2}
   ]
 };
+const BATTERIES=[
+  {id:"W1",kwh:5.22,v:51.2,ah:102,label:"5.22 kWh / 51.2 V / 102 Ah"},
+  {id:"W2",kwh:5.22,v:25.6,ah:204,label:"5.22 kWh / 25.6 V / 204 Ah"},
+  {id:"W3",kwh:8.03,v:25.6,ah:314,label:"8.03 kWh / 25.6 V / 314 Ah"},
+  {id:"W4",kwh:10.44,v:51.2,ah:204,label:"10.44 kWh / 51.2 V / 204 Ah"},
+  {id:"W5",kwh:14.33,v:51.2,ah:280,label:"14.33 kWh / 51.2 V / 280 Ah"},
+  {id:"W6",kwh:16.07,v:51.2,ah:314,label:"16.07 kWh / 51.2 V / 314 Ah"}
+];
+const U=220,EFF=0.8,PV_DERATE=0.8,PV_W=625,MAX_PAR=15;
+let selectedIP="IP20",selectedBat=null;
 
-// ===== 主组件 =====
-function App() {
-  const [currentI, setCurrentI] = useState("");
-  const [backTime, setBackTime] = useState("");
-  const [selectedWb, setSelectedWb] = useState("W1");
-  const [selectedIP, setSelectedIP] = useState("IP20");
-
-  const result = useMemo(() => {
-    const I = parseFloat(currentI);
-    const t = parseFloat(backTime);
-    if (isNaN(I) || isNaN(t) || I <= 0 || t <= 0) return null;
-
-    const loadP = 220 * I;
-    const neededPi_kW = loadP / 0.8 / 1000;
-    const neededW_kWh = (loadP * t) / 1000;
-    const battery = BATTERY_DB.find(b => b.id === selectedWb);
-
-    const inverter = INVERTER_DB[selectedIP]
-      .filter(inv => inv.p_kw >= neededPi_kW && inv.volt === battery.volt)
-      .sort((a,b) => a.p_kw - b.p_kw)[0];
-
-    const Qb = Math.ceil(neededW_kWh / (battery.cap * 0.85));
-    const Qp = Math.ceil(loadP / (0.8 * 625));
-
-    return { inverter, battery, Qb, Qp };
-  }, [currentI, backTime, selectedWb, selectedIP]);
-
-  return React.createElement("div", { className: "p-6 md:p-10 max-w-4xl mx-auto" },
-
-    React.createElement("h1", { className: "text-3xl font-black text-[#00aeaa] mb-6" }, "SOLAR CONFIG"),
-
-    // 输入区
-    React.createElement("div", { className: "bg-white p-6 rounded-2xl shadow mb-6 space-y-4" },
-
-      React.createElement("input", {
-        placeholder: "Load Current (A)",
-        value: currentI,
-        onChange: e => setCurrentI(e.target.value),
-        className: "w-full border-b p-2 text-lg"
-      }),
-
-      React.createElement("input", {
-        placeholder: "Backup Time (h)",
-        value: backTime,
-        onChange: e => setBackTime(e.target.value),
-        className: "w-full border-b p-2 text-lg"
-      }),
-
-      React.createElement("select", {
-        value: selectedWb,
-        onChange: e => setSelectedWb(e.target.value),
-        className: "w-full p-2 bg-slate-100 rounded"
-      },
-        BATTERY_DB.map(b =>
-          React.createElement("option", { value: b.id }, b.name)
-        )
-      ),
-
-      React.createElement("div", { className: "flex gap-2" },
-        ["IP20","IP66"].map(ip =>
-          React.createElement("button", {
-            onClick: () => setSelectedIP(ip),
-            className: selectedIP === ip
-              ? "px-4 py-2 bg-[#00aeaa] text-white rounded-full"
-              : "px-4 py-2 bg-gray-200 rounded-full"
-          }, ip)
-        )
-      )
-    ),
-
-    // 结果区
-    !result
-      ? React.createElement("div", { className: "border-dashed border p-10 text-center text-gray-400" }, "Waiting for input...")
-      : React.createElement("div", { className: "space-y-4" },
-
-        React.createElement("div", { className: "bg-white p-6 rounded shadow" },
-          React.createElement("p", {}, "Inverter: " + result.inverter.model)
-        ),
-
-        React.createElement("div", { className: "bg-[#00aeaa] text-white p-6 rounded text-3xl font-bold text-center" },
-          result.Qb
-        ),
-
-        React.createElement("div", { className: "bg-black text-white p-4 rounded text-center" },
-          result.Qp + " panels"
-        ),
-
-        React.createElement("button", {
-          className: "w-full bg-black text-white py-3 rounded",
-          onClick: () => {
-            const text = `
-Inverter: ${result.inverter.model}
-Battery: ${result.battery.name}
-Qty: ${result.Qb}
-Panels: ${result.Qp}
-`;
-            navigator.clipboard.writeText(text);
-            alert("Copied!");
-          }
-        }, "Copy Result")
-      )
-  );
+function setIP(ip){
+  selectedIP=ip;
+  document.getElementById("btn-ip20").classList.toggle("active",ip==="IP20");
+  document.getElementById("btn-ip66").classList.toggle("active",ip==="IP66");
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  React.createElement(App)
-);
+function renderBatteries(){
+  const g=document.getElementById("bat-grid");
+  g.innerHTML=BATTERIES.map(b=>`
+    <div class="bat-opt" id="bat-${b.id}" onclick="selBat('${b.id}')">
+      <div class="bat-name">${b.id}: ${b.kwh} kWh</div>
+      <div class="bat-spec">${b.v} V / ${b.ah} Ah</div>
+    </div>`).join("");
+}
+
+function selBat(id){
+  selectedBat=id;
+  BATTERIES.forEach(b=>{
+    document.getElementById("bat-"+b.id).classList.toggle("selected",b.id===id);
+  });
+  document.getElementById("err-bat").textContent="";
+}
+
+function validate(){
+  let ok=true;
+  const I=parseFloat(document.getElementById("inp-I").value);
+  const t=parseFloat(document.getElementById("inp-t").value);
+  document.getElementById("err-I").textContent=(!I||I<=0)?(ok=false,"Please enter a valid current"):"";
+  document.getElementById("err-t").textContent=(!t||t<=0)?(ok=false,"Please enter a valid duration"):"";
+  if(!selectedBat){document.getElementById("err-bat").textContent="Please select a battery type";ok=false;}
+  return ok?{I,t}:null;
+}
+
+function calculate(){
+  const v=validate();
+  if(!v) return;
+  const {I,t}=v;
+  const bat=BATTERIES.find(b=>b.id===selectedBat);
+
+  const P_kW=U*I/1000;
+  const Pi_kW=U*I/EFF/1000;
+  const W_kwh=U*I*t/1000;
+
+  const pool=INVERTERS[selectedIP];
+  const compatible=pool.filter(inv=>inv.kW>=Pi_kW&&inv.batV===bat.v);
+  const inverter=compatible.sort((a,b)=>a.kW-b.kW)[0]||null;
+
+  const Qb_raw=W_kwh/(bat.kwh*0.85);
+  const Qb=Math.ceil(Qb_raw);
+  const overLimit=Qb>MAX_PAR;
+
+  const res=document.getElementById("results");
+  res.classList.add("show");
+
+  document.getElementById("res-grid").innerHTML=`
+    <div class="res-card"><div class="card-label">AC Load Power</div><div class="card-val">${(P_kW).toFixed(2)} kW</div><div class="card-sub">P = U × I</div></div>
+    <div class="res-card"><div class="card-label">Min. Inverter Power</div><div class="card-val">${Pi_kW.toFixed(2)} kW</div><div class="card-sub">After efficiency derating</div></div>
+    <div class="res-card"><div class="card-label">Energy Required</div><div class="card-val">${W_kwh.toFixed(2)} kWh</div><div class="card-sub">For ${t}h backup</div></div>
+    <div class="res-card"><div class="card-label">Battery Units</div><div class="card-val">${overLimit?"—":Qb}</div><div class="card-sub">${overLimit?"Exceeds 15-unit limit":"Max 15 units parallel"}</div></div>
+  `;
+
+  const dc=document.getElementById("detail-card");
+  dc.innerHTML=`
+    <div class="detail-row"><span class="dk">IP rating</span><span class="dv">${selectedIP}</span></div>
+    <div class="detail-row"><span class="dk">Battery selected</span><span class="dv">${bat.id} — ${bat.kwh} kWh (${bat.v} V / ${bat.ah} Ah)</span></div>
+    <div class="detail-row"><span class="dk">Battery units (Qb)</span><span class="dv">${overLimit?"⚠ "+Qb+" — exceeds max 15":Qb+" unit(s)"}</span></div>
+    <div class="detail-row"><span class="dk">Inverter matched</span><span class="dv">${inverter?inverter.model:"No compatible inverter found"}</span></div>
+    <div class="detail-row"><span class="dk">Inverter rated power</span><span class="dv">${inverter?inverter.kW+" kW":"—"}</span></div>
+    ${inverter?`<div class="detail-row"><span class="dk">Inverter battery voltage</span><span class="dv">${inverter.batV} V</span></div>`:""}
+  `;
+
+  let alerts="";
+  if(!inverter){
+    const voltageMismatch=pool.filter(inv=>inv.kW>=Pi_kW&&inv.batV!==bat.v).sort((a,b)=>a.kW-b.kW)[0];
+    const noInverterBig=pool.filter(inv=>inv.batV===bat.v).length===0;
+    if(noInverterBig)
+      alerts+=`<div class="alert alert-warn">No ${selectedIP} inverter supports ${bat.v}V battery. Please choose a different battery type.</div>`;
+    else if(voltageMismatch)
+      alerts+=`<div class="alert alert-warn">Voltage mismatch: the smallest valid inverter (${voltageMismatch.model}, ${voltageMismatch.kW} kW) requires ${voltageMismatch.batV}V battery. Please select a battery with ${voltageMismatch.batV}V nominal voltage.</div>`;
+    else
+      alerts+=`<div class="alert alert-warn">Load exceeds the maximum inverter capacity in the ${selectedIP} range. Please reduce load or consult an engineer.</div>`;
+  } else {
+    alerts+=`<div class="alert alert-ok">System configuration is valid. Inverter and battery voltages match at ${bat.v} V.</div>`;
+  }
+  if(overLimit) alerts+=`<div class="alert alert-warn">Battery count (${Qb}) exceeds the maximum parallel limit of 15. Consider a battery with higher capacity.</div>`;
+  document.getElementById("alerts-out").innerHTML=alerts;
+
+  let solarHtml="";
+  if(document.getElementById("chk-solar").checked){
+    const Qp=Math.ceil(P_kW*1000/PV_DERATE/PV_W);
+    solarHtml=`
+      <div class="solar-section">
+        <div class="section-label">Solar Panel Recommendation</div>
+        <div class="detail-card">
+          <div class="detail-row"><span class="dk">Min. panel count (Qp)</span><span class="dv">${Qp} panels</span></div>
+          <div class="detail-row"><span class="dk">Panel power used</span><span class="dv">625 W/panel (conservative)</span></div>
+          <div class="detail-row"><span class="dk">PV-to-load derating</span><span class="dv">0.8</span></div>
+          <div class="detail-row"><span class="dk">Range</span><span class="dv">625 – 650 W per panel</span></div>
+        </div>
+        <div class="alert alert-ok" style="margin-bottom:0">Conservative estimate using 625 W panels. Actual count may be lower with higher-rated panels.</div>
+      </div>`;
+  }
+  document.getElementById("solar-out").innerHTML=solarHtml;
+
+  res.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+renderBatteries();
 </script>
-</body>
-</html>
